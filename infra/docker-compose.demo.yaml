@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.5"
 services:
   sso:
     image: alexblacknn/sso:0.0.1
@@ -25,6 +25,8 @@ services:
       - etcd1
       - etcd2
       - etcd3
+    networks:
+      - proxynet
 
   redis_master:
     image: bitnami/redis:6.2.10
@@ -40,6 +42,8 @@ services:
       - REDIS_PASSWORD=123456
       - REDIS_MASTER_PASSWORD=123456
       - REDIS_MASTER_USER=user
+    networks:
+      - proxynet
 
   redis_replica1:
     image: bitnami/redis:6.2.10
@@ -59,6 +63,8 @@ services:
       - REDIS_PASSWORD=123456
     depends_on:
       - redis_master
+    networks:
+      - proxynet
 
   redis_replica2:
     image: bitnami/redis:6.2.10
@@ -78,6 +84,8 @@ services:
       - REDIS_PASSWORD=123456
     depends_on:
       - redis_master
+    networks:
+      - proxynet
 
   redis_sentinel1:
     image: bitnami/redis-sentinel:6.2.10
@@ -97,6 +105,8 @@ services:
       - redis_master
       - redis_replica1
       - redis_replica2
+    networks:
+      - proxynet
 
   redis_sentinel2:
     image: bitnami/redis-sentinel:6.2.10
@@ -116,6 +126,8 @@ services:
       - redis_master
       - redis_replica1
       - redis_replica2
+    networks:
+      - proxynet
 
   redis_sentinel3:
     image: bitnami/redis-sentinel:6.2.10
@@ -135,6 +147,8 @@ services:
       - redis_master
       - redis_replica1
       - redis_replica2
+    networks:
+      - proxynet
 
   etcd1: &etcd
     image: alexblacknn/patroni:0.0.1
@@ -151,18 +165,24 @@ services:
     container_name: demo-etcd1
     hostname: etcd1
     command: etcd --name etcd1 --initial-advertise-peer-urls http://etcd1:2380
+    networks:
+      - proxynet
 
   etcd2:
     <<: *etcd
     container_name: demo-etcd2
     hostname: etcd2
     command: etcd --name etcd2 --initial-advertise-peer-urls http://etcd2:2380
+    networks:
+      - proxynet
 
   etcd3:
     <<: *etcd
     container_name: demo-etcd3
     hostname: etcd3
     command: etcd --name etcd3 --initial-advertise-peer-urls http://etcd3:2380
+    networks:
+      - proxynet
 
   haproxy:
     image: alexblacknn/patroni:0.0.1
@@ -180,6 +200,8 @@ services:
       ETCDCTL_ENDPOINTS: http://etcd1:2379,http://etcd2:2379,http://etcd3:2379
       PATRONI_ETCD3_HOSTS: "'etcd1:2379','etcd2:2379','etcd3:2379'"
       PATRONI_SCOPE: demo
+    networks:
+      - proxynet
 
   patroni1:
     image: alexblacknn/patroni:0.0.1
@@ -192,6 +214,8 @@ services:
     environment:
       <<: *haproxy_env
       PATRONI_NAME: patroni1
+    networks:
+      - proxynet
 
   patroni2:
     image: alexblacknn/patroni:0.0.1
@@ -204,6 +228,8 @@ services:
     environment:
       <<: *haproxy_env
       PATRONI_NAME: patroni2
+    networks:
+      - proxynet
 
   patroni3:
     image: alexblacknn/patroni:0.0.1
@@ -216,7 +242,8 @@ services:
     environment:
       <<: *haproxy_env
       PATRONI_NAME: patroni3
-
+    networks:
+      - proxynet
 
   ######################
   ##### MONITORING #####
@@ -247,6 +274,8 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_SERVER_ROOT_URL=https://localhost/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    networks:
+      - proxynet
 
   loki:
     image: grafana/loki:2.7.4
@@ -256,6 +285,8 @@ services:
     ports:
       - 3100:3100
     command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - proxynet
 
   promtail:
     image: grafana/promtail:2.7.4
@@ -270,6 +301,8 @@ services:
     command: -config.file=/etc/promtail/docker-config.yaml
     depends_on:
       - loki
+    networks:
+      - proxynet
 
   jaeger:
     image: jaegertracing/all-in-one:1.42
@@ -288,3 +321,9 @@ services:
       - "14250:14250"
     environment:
       - QUERY_BASE_PATH=/jaeger
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    name: custom_network

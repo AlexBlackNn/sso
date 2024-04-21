@@ -7,7 +7,7 @@
 *.dll
 *.so
 *.dylib
-
+infra/postgres_compose/
 # Test binary, built with `go test -c`
 *.test
 
